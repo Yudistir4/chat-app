@@ -14,6 +14,7 @@ export default async function handler(
   switch (req.method) {
     case 'GET':
       const db = await connectToDatabase();
+
       const result = await UserModel.find();
       console.log(result);
       res.status(200).json({ name: result[0].name });
