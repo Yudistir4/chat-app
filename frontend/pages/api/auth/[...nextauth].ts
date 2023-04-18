@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { MongoDBAdapter } from '@next-auth/mongodb-adapter';
 import clientPromise from '../../../lib/mongodb';
@@ -13,14 +13,16 @@ export default NextAuth({
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  // callbacks: {
-  //   async session({ session, token, user }) {
-  //     const sessionUser = { ...session.user, ...user };
+  callbacks: {
+    async session({ session, token, user }) {
+      const sessionUser = { ...session.user, ...user };
 
-  //     return Promise.resolve({
-  //       ...session,
-  //       user: sessionUser,
-  //     });
-  //   },
-  // },
+      return Promise.resolve({
+        ...session,
+        user: sessionUser,
+      });
+    },
+  },
 });
+
+// export const authOptions: NextAuthOptions = {};

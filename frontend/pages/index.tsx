@@ -1,4 +1,5 @@
 import Auth from '@/components/Auth';
+import Chat from '@/components/Chat';
 import { Box } from '@chakra-ui/react';
 import { NextPageContext } from 'next';
 import { getSession, useSession } from 'next-auth/react';
@@ -9,7 +10,7 @@ import Head from 'next/head';
 
 export default function Home() {
   const { data } = useSession();
-
+  console.log(data);
   return (
     <>
       <Head>
@@ -19,7 +20,11 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <Box>
-        <Auth session={data} />
+        {data?.user.username ? (
+          <Chat session={data} />
+        ) : (
+          <Auth session={data} />
+        )}
       </Box>
     </>
   );
@@ -27,6 +32,7 @@ export default function Home() {
 
 export async function getServerSideProps(ctx: NextPageContext) {
   const session = await getSession(ctx);
+
   return {
     props: {
       session,

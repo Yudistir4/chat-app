@@ -10,14 +10,17 @@ interface IAuthProps {
 }
 
 const Auth: React.FunctionComponent<IAuthProps> = ({ session }) => {
-  console.log(session);
-  console.log(process.env.NEXT_PUBLIC_BASE_URL);
   const [username, setUsername] = useState('');
   const submit = async () => {
-    await axios.get(
-      (process.env.NEXT_PUBLIC_BASE_URL as string) + 'api/user'
-      // { he }
-    );
+    try {
+      const res = await axios.put(
+        (process.env.NEXT_PUBLIC_BASE_URL as string) +
+          'api/users/' +
+          session?.user.id,
+        { username }
+      );
+      console.log(res.data);
+    } catch (error) {}
   };
   return (
     <Center height="100vh">
