@@ -5,19 +5,31 @@ import { Avatar, Box, Center, Flex, Input, Text } from '@chakra-ui/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
-import { Ref, useEffect, useRef, useState } from 'react';
+import { Ref, RefObject, useEffect, useRef, useState } from 'react';
 import Message from './Message';
 
 import { v4 as uuidv4 } from 'uuid';
 import { formatDate } from '@/utils';
+import Header from './Header';
+import { Socket } from 'socket.io-client';
+import { ClientToServerEvents, Data, ServerToClientEvents } from '../index';
+import InputMessage from './InputMessage';
 
-interface IConversationProps {}
+interface IConversationProps {
+  socket: RefObject<
+    Socket<ServerToClientEvents, ClientToServerEvents> | undefined
+  >;
+}
 interface Messages {
   date: string;
   messages: MessageDocument[];
 }
 
-const Conversation: React.FunctionComponent<IConversationProps> = (props) => {
+const Conversation: React.FunctionComponent<IConversationProps> = ({
+  socket,
+}) => {
+  console.log('relex');
+
   const { data: session } = useSession();
   const currentConversation = useConversation(
     (state) => state.currentConversation
@@ -25,17 +37,12 @@ const Conversation: React.FunctionComponent<IConversationProps> = (props) => {
   const currentConversationUser = currentConversation?.participants.filter(
     (participant) => participant._id !== session?.user.id
   )[0];
-  const [content, setContent] = useState('');
+
+  const [arrivalMessage, setArrivalMessage] = useState<Data | null>(null);
+
   const queryClient = useQueryClient();
   const conversationRef = useRef<HTMLDivElement>();
   // Add new message
-  const { data, mutate: addMessageMutate } = useMutation({
-    mutationFn: (message: {
-      content: string;
-      conversation: string;
-      sender: string;
-    }) => axios.post(api.messages, message),
-  });
 
   // Query Message
   const { data: dataMessage } = useQuery({
@@ -65,63 +72,35 @@ const Conversation: React.FunctionComponent<IConversationProps> = (props) => {
     },
   });
 
+  useEffect(() => {
+    socket.current?.on('receiveMessage', (message) => {
+      console.log({ message });
+
+      setArrivalMessage(message);
+    });
+  }, [socket]);
+
+  useEffect(() => {
+    if (
+      arrivalMessage &&
+      currentConversation &&
+      currentConversation._id === arrivalMessage.conversation &&
+      queryClient.getQueryData(['message', currentConversation._id])
+    ) {
+      queryClient.setQueryData(
+        ['message', currentConversation._id],
+        (old: any) => ({ data: { data: [...old.data.data, arrivalMessage] } })
+      );
+      // setArrivalMessage(null);
+    }
+  }, [arrivalMessage, queryClient, currentConversation]);
+
   // Trigger scroll to bottom if message come in
   useEffect(() => {
     if (conversationRef.current) {
       conversationRef.current.scrollTop = conversationRef.current.scrollHeight;
     }
   }, [dataMessage]);
-
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!session || !currentConversation || !content) return;
-    addMessageMutate({
-      content,
-      conversation: currentConversation._id,
-      sender: session.user.id,
-    });
-
-    // add message
-    const message = {
-      _id: uuidv4(),
-      content,
-      conversation: currentConversation._id,
-      sender: session.user.id,
-      createdAt: new Date(),
-    };
-
-    // Add message to message list
-    queryClient.setQueryData(
-      ['message', currentConversation._id],
-      (old: any) => ({ data: { data: [...old.data.data, message] } })
-    );
-
-    // add conversation to conversation list
-    queryClient.setQueryData(['conversations'], (old: any) => {
-      const conversationIndex: number = old.data.data.findIndex(
-        (conversation: any) => conversation._id === currentConversation._id
-      );
-
-      if (conversationIndex >= 0) {
-        let conversations = JSON.parse(JSON.stringify(old.data.data));
-        const itemToMove = conversations[conversationIndex];
-        conversations.splice(conversationIndex, 1);
-        conversations.unshift({ ...itemToMove, lastMessage: message });
-        return { data: { data: conversations } };
-      } else {
-        return {
-          data: {
-            data: [
-              { ...currentConversation, lastMessage: message },
-              ...old.data.data,
-            ],
-          },
-        };
-      }
-    });
-
-    setContent('');
-  };
 
   return (
     <>
@@ -131,10 +110,7 @@ const Conversation: React.FunctionComponent<IConversationProps> = (props) => {
           width={{ base: '0', md: 'calc(100% - 400px)' }}
         >
           {/* Header */}
-          <Flex alignItems="center" gap={3} py={2} px={4} bg="whiteAlpha.200">
-            <Avatar src={currentConversationUser?.image} />
-            <Text fontWeight={500}>{currentConversationUser?.username}</Text>
-          </Flex>
+          <Header currentConversationUser={currentConversationUser} />
 
           <Flex
             ref={conversationRef as Ref<HTMLDivElement>}
@@ -167,15 +143,12 @@ const Conversation: React.FunctionComponent<IConversationProps> = (props) => {
           </Flex>
 
           {/* Input */}
-          <Box p={3}>
-            <form onSubmit={onSubmit}>
-              <Input
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write message"
-              />
-            </form>
-          </Box>
+          <InputMessage
+            currentConversation={currentConversation}
+            currentConversationUser={currentConversationUser}
+            session={session}
+            socket={socket}
+          />
         </Flex>
       ) : (
         <Center width={{ base: '0', md: 'calc(100% - 400px)' }}>

@@ -19,7 +19,7 @@ const Auth: React.FunctionComponent<IAuthProps> = ({ session }) => {
           session?.user.id,
         { username }
       );
-      console.log(res.data);
+      // console.log(res.data);
     } catch (error) {}
   };
   return (

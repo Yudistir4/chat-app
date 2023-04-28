@@ -1,31 +1,33 @@
-import {
-  Box,
-  Button,
-  Flex,
-  Input,
-  Stack,
-  Text,
-  useDisclosure,
-} from '@chakra-ui/react';
-import { signOut, useSession } from 'next-auth/react';
-import * as React from 'react';
-import FindConversationModal from './FindConversationModal';
-import ConversationItem from './ConversationItem';
-import UserItem from './UserItem';
-import axios, { AxiosResponse } from 'axios';
 import { api } from '@/config';
-import { useQuery } from '@tanstack/react-query';
 import { ConversationDocument } from '@/database/models/conversation';
 import useConversation from '@/store/conversation';
+import { Box, Button, Stack, Text, useDisclosure } from '@chakra-ui/react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { signOut, useSession } from 'next-auth/react';
+import * as React from 'react';
+import ConversationItem from './ConversationItem';
+import FindConversationModal from './FindConversationModal';
+import { ClientToServerEvents, Data, ServerToClientEvents } from '..';
+import { Socket } from 'socket.io-client';
 
-interface IListConversationProps {}
+interface IListConversationProps {
+  socket: React.RefObject<
+    Socket<ServerToClientEvents, ClientToServerEvents> | undefined
+  >;
+}
 
-const ListConversation: React.FunctionComponent<IListConversationProps> = (
-  props
-) => {
+const ListConversation: React.FunctionComponent<IListConversationProps> = ({
+  socket,
+}) => {
+  const [arrivalMessageBackground, setArrivalMessageBackground] =
+    React.useState<Data | null>(null);
+  const queryClient = useQueryClient();
   const { data: session } = useSession();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { data: dataConversations } = useQuery({
+
+  // Get Conversation list
+  const { data: dataConversations, refetch: refetchConversations } = useQuery({
     queryKey: ['conversations'],
     queryFn: () =>
       axios.get<{ data: ConversationDocument[] }>(api.conversations),
@@ -43,7 +45,40 @@ const ListConversation: React.FunctionComponent<IListConversationProps> = (
   const currentConversation = useConversation(
     (state) => state.currentConversation
   );
-  console.log({ dataConversations });
+
+  // Receive message
+  React.useEffect(() => {
+    socket.current?.on('receiveMessage', (message) => {
+      console.log({ messageBg: message });
+      setArrivalMessageBackground(message);
+    });
+  }, [socket]);
+
+  // add message to related conversation
+  React.useEffect(() => {
+    if (arrivalMessageBackground) {
+      queryClient.setQueryData(['conversations'], (old: any) => {
+        const conversationIndex: number = old.data.data.findIndex(
+          (conversation: any) =>
+            conversation._id === arrivalMessageBackground.conversation
+        );
+
+        if (conversationIndex >= 0) {
+          let conversations = JSON.parse(JSON.stringify(old.data.data));
+          const itemToMove = conversations[conversationIndex];
+          conversations.splice(conversationIndex, 1);
+          conversations.unshift({
+            ...itemToMove,
+            lastMessage: arrivalMessageBackground,
+          });
+          return { data: { data: conversations } };
+        } else {
+          refetchConversations();
+        }
+      });
+    }
+  }, [arrivalMessageBackground, queryClient, refetchConversations]);
+
   return (
     <Box
       width={{ base: '100%', md: '400px' }}

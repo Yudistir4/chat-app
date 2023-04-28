@@ -2,17 +2,20 @@ import { ConversationDocument } from '@/database/models/conversation';
 import { UserDocument } from '@/database/models/user';
 import { create } from 'zustand';
 
-interface CounterState {
+interface ConversationState {
   currentConversation: ConversationDocument | null;
   setCurrentConversation: (user: ConversationDocument) => void;
-  //   decrement: () => void;
+  isCurrentConversationUserOnline: boolean;
+  setIsCurrentConversationUserOnline: (status: boolean) => void;
 }
 
-const useConversation = create<CounterState>((set) => ({
+const useConversation = create<ConversationState>((set) => ({
+  isCurrentConversationUserOnline: false,
+  setIsCurrentConversationUserOnline: (status: boolean) =>
+    set({ isCurrentConversationUserOnline: status }),
   currentConversation: null,
   setCurrentConversation: (user: ConversationDocument) =>
     set({ currentConversation: user }),
-  //   decrement: () => set((state) => ({ count: state.count - 1 })),
 }));
 
 export default useConversation;

@@ -4,6 +4,7 @@ import { SessionProvider } from 'next-auth/react';
 import type { AppProps } from 'next/app';
 import { theme } from '../chakra/theme';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 export default function App({
   Component,
   pageProps: { session, ...pageProps },
@@ -15,6 +16,7 @@ export default function App({
         <ChakraProvider theme={theme}>
           <Component {...pageProps} />
         </ChakraProvider>
+        <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </SessionProvider>
   );

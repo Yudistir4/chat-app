@@ -4,13 +4,10 @@ import { Box } from '@chakra-ui/react';
 import { NextPageContext } from 'next';
 import { getSession, useSession } from 'next-auth/react';
 import Head from 'next/head';
-// import { Inter } from 'next/font/google';
-
-// const inter = Inter({ subsets: ['latin'] });
+ 
 
 export default function Home() {
   const { data } = useSession();
-  console.log(data);
   return (
     <>
       <Head>
