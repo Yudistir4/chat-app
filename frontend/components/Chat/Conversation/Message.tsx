@@ -24,7 +24,7 @@ const Message: React.FunctionComponent<IMessageProps> = ({
     })
     .substring(2);
 
-  time = `${hour.toString().padStart(2, '0')}:${time}`;
+  time = `${hour.toString().padStart(2, '0')}${time}`;
   return (
     <Flex
       align={isOwn ? 'flex-end' : ''}

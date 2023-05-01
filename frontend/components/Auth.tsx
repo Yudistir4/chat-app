@@ -1,41 +1,82 @@
-import { Button, Center, Image, Input, Stack, Text } from '@chakra-ui/react';
-import axios from 'axios';
+import { api } from '@/config';
+import {
+  Button,
+  Center,
+  FormControl,
+  FormErrorMessage,
+  Image,
+  Input,
+  Stack,
+  Text,
+} from '@chakra-ui/react';
+import { isError, useMutation } from '@tanstack/react-query';
+import axios, { AxiosError } from 'axios';
 import { Session } from 'next-auth';
-import { signIn } from 'next-auth/react';
-import { useState } from 'react';
-
+import { signIn, useSession } from 'next-auth/react';
+import { FormEvent, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 interface IAuthProps {
   session: Session | null;
   reloadSession?: () => void;
 }
 
+const schema = yup
+  .object({
+    username: yup
+      .string()
+      .trim()
+      .strict()
+      .lowercase()
+      .required()
+      .matches(/^\S+$/, 'Name must not contain white space'),
+  })
+  .required();
+
 const Auth: React.FunctionComponent<IAuthProps> = ({ session }) => {
-  const [username, setUsername] = useState('');
-  const submit = async () => {
-    try {
-      const res = await axios.put(
-        (process.env.NEXT_PUBLIC_BASE_URL as string) +
-          'api/users/' +
-          session?.user.id,
-        { username }
-      );
-      // console.log(res.data);
-    } catch (error) {}
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<{ username: string }>({ resolver: yupResolver(schema) });
+
+  const { update } = useSession();
+
+  const { mutate, isLoading, error } = useMutation<
+    any,
+    AxiosError<{ message: string }>,
+    string
+  >({
+    mutationFn: (username) =>
+      axios.put(`${api.users}/${session?.user.id}`, {
+        username,
+      }),
+    onSuccess: () => update(),
+  });
+  const onSubmit = handleSubmit((data) => mutate(data.username));
+
   return (
     <Center height="100vh">
       <Stack spacing={8} align={'center'}>
         {session ? (
           <>
             <Text fontSize="3xl">Enter Username</Text>
-            <Input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="username"
-            />
-            <Button onClick={submit} width="100%">
-              Save
-            </Button>
+            <form onSubmit={onSubmit}>
+              {error && (
+                <Text mb={2} color="red.500" textAlign="center">
+                  {error?.response?.data.message}
+                </Text>
+              )}
+
+              <FormControl isInvalid={!!errors.username}>
+                <Input {...register('username')} placeholder="username" />
+                <FormErrorMessage>{errors.username?.message}</FormErrorMessage>
+              </FormControl>
+              <Button isLoading={isLoading} type="submit" width="100%" mt={4}>
+                Save
+              </Button>
+            </form>
           </>
         ) : (
           <>
