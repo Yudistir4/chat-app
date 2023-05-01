@@ -91,7 +91,7 @@ const Conversation: React.FunctionComponent<IConversationProps> = ({
         ['message', currentConversation._id],
         (old: any) => ({ data: { data: [...old.data.data, arrivalMessage] } })
       );
-      // setArrivalMessage(null);
+      setArrivalMessage(null);
     }
   }, [arrivalMessage, queryClient, currentConversation]);
 
