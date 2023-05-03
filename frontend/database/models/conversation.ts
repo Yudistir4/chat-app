@@ -5,6 +5,7 @@ import { UserDocument } from './user';
 export interface ConversationDocument extends Document {
   participants: UserDocument[];
   lastMessage: MessageDocument['_id'] | null | MessageDocument;
+  unReadMessages: number;
 }
 
 const conversationSchema = new Schema<ConversationDocument>(

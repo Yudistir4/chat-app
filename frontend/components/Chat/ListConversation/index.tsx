@@ -1,15 +1,16 @@
 import { api } from '@/config';
 import { ConversationDocument } from '@/database/models/conversation';
 import useConversation from '@/store/conversation';
+import { getConversationUser } from '@/utils';
 import { Box, Button, Stack, Text, useDisclosure } from '@chakra-ui/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { signOut, useSession } from 'next-auth/react';
 import * as React from 'react';
+import { Socket } from 'socket.io-client';
+import { ClientToServerEvents, ServerToClientEvents } from '../../../typing';
 import ConversationItem from './ConversationItem';
 import FindConversationModal from './FindConversationModal';
-import { ClientToServerEvents, Data, ServerToClientEvents } from '..';
-import { Socket } from 'socket.io-client';
 
 interface IListConversationProps {
   socket: React.RefObject<
@@ -20,15 +21,17 @@ interface IListConversationProps {
 const ListConversation: React.FunctionComponent<IListConversationProps> = ({
   socket,
 }) => {
-  const [arrivalMessageBackground, setArrivalMessageBackground] =
-    React.useState<Data | null>(null);
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const currentConversation = useConversation(
+    (state) => state.currentConversation
+  );
 
   // Get Conversation list
   const { data: dataConversations, refetch: refetchConversations } = useQuery({
     queryKey: ['conversations'],
+    refetchOnWindowFocus: false,
     queryFn: () =>
       axios.get<{ data: ConversationDocument[] }>(api.conversations),
     select(res) {
@@ -42,42 +45,41 @@ const ListConversation: React.FunctionComponent<IListConversationProps> = ({
       }) as ConversationDocument[];
     },
   });
-  const currentConversation = useConversation(
-    (state) => state.currentConversation
-  );
 
-  // Receive message
+  // Mark as read all messages DB
+  const { mutate: updateIsReadMessage } = useMutation({
+    mutationFn: (data: { sender: string; conversation: string }) =>
+      axios.put(`${api.messages}`, data),
+  });
+
   React.useEffect(() => {
-    socket.current?.on('receiveMessage', (message) => {
+    function onReceive(message: any) {
       console.log({ messageBg: message });
-      setArrivalMessageBackground(message);
-    });
-  }, [socket]);
-
-  // add message to related conversation
-  React.useEffect(() => {
-    if (arrivalMessageBackground) {
       queryClient.setQueryData(['conversations'], (old: any) => {
         const conversationIndex: number = old.data.data.findIndex(
-          (conversation: any) =>
-            conversation._id === arrivalMessageBackground.conversation
+          (conversation: any) => conversation._id === message.conversation
         );
 
         if (conversationIndex >= 0) {
           let conversations = JSON.parse(JSON.stringify(old.data.data));
           const itemToMove = conversations[conversationIndex];
+          if (currentConversation?._id !== itemToMove._id) {
+            itemToMove.unReadMessages++;
+          }
           conversations.splice(conversationIndex, 1);
-          conversations.unshift({
-            ...itemToMove,
-            lastMessage: arrivalMessageBackground,
-          });
+          conversations.unshift({ ...itemToMove, lastMessage: message });
           return { data: { data: conversations } };
         } else {
           refetchConversations();
         }
       });
     }
-  }, [arrivalMessageBackground, queryClient, refetchConversations]);
+    const mySocket = socket.current;
+    mySocket?.on('receiveMessage', onReceive);
+    return () => {
+      mySocket?.off('receiveMessage', onReceive);
+    };
+  }, [socket, currentConversation, queryClient, refetchConversations]);
 
   return (
     <Box
@@ -103,13 +105,41 @@ const ListConversation: React.FunctionComponent<IListConversationProps> = ({
         <Stack flexGrow="1" overflowY="auto">
           {dataConversations &&
             dataConversations.map((conversation) => (
-              <ConversationItem
+              <div
                 key={conversation._id}
-                conversation={conversation}
-                isOnConversation={
-                  currentConversation?._id === conversation._id ? true : false
-                }
-              />
+                onClick={() => {
+                  if (!socket.current || conversation.unReadMessages === 0)
+                    return;
+                  const sender = getConversationUser(
+                    conversation,
+                    session
+                  )?._id;
+                  const conversationID: string = conversation._id;
+                  updateIsReadMessage({ sender, conversation: conversationID });
+
+                  // emit mark as read message
+                  socket.current.emit('markAsRead', {
+                    sender,
+                    conversation: conversationID,
+                  });
+
+                  // update entire unread count message queryClients
+                  queryClient.setQueryData(['conversations'], (old: any) => {
+                    const conversationIndex: number = old.data.data.findIndex(
+                      (conversation: any) => conversation._id === conversationID
+                    );
+                    old.data.data[conversationIndex].unReadMessages = 0;
+                    return old;
+                  });
+                }}
+              >
+                <ConversationItem
+                  conversation={conversation}
+                  isOnConversation={
+                    currentConversation?._id === conversation._id ? true : false
+                  }
+                />
+              </div>
             ))}
         </Stack>
         <Button flexShrink="0" onClick={() => signOut()}>

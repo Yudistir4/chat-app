@@ -27,8 +27,9 @@ const Message: React.FunctionComponent<IMessageProps> = ({
   time = `${hour.toString().padStart(2, '0')}${time}`;
   return (
     <Flex
-      align={isOwn ? 'flex-end' : ''}
-      direction="column"
+      align="flex-end"
+      flexDirection={isOwn ? 'row-reverse' : 'row'}
+      gap={1}
       maxWidth="70%"
       marginLeft={isOwn ? 'auto' : ''}
     >
@@ -41,7 +42,16 @@ const Message: React.FunctionComponent<IMessageProps> = ({
       >
         {message.content}
       </Text>
-      <Text fontSize="xs">{time}</Text>
+      <Flex direction="column">
+        {isOwn && message.isRead && (
+          <Text fontSize="xs" color="whiteAlpha.700">
+            Read
+          </Text>
+        )}
+        <Text fontSize="xs" color="whiteAlpha.700">
+          {time}
+        </Text>
+      </Flex>
     </Flex>
   );
 };

@@ -14,11 +14,13 @@ interface Data {
 interface ServerToClientEvents {
   getUsers: (users: User[]) => void;
   receiveMessage: (data: Data) => void;
+  receiveAsReadStatus: (data: { conversation: string; sender: string }) => void;
 }
 
 interface ClientToServerEvents {
   addUser: (userId: string) => void;
   sendMessage: (data: Data) => void;
+  markAsRead: (data: { conversation: string; sender: string }) => void;
   // joinRoom: (roomId: string) => void;
   // leaveRoom: (roomId: string) => void;
 }
@@ -70,6 +72,13 @@ io.on('connection', (socket) => {
     const user = getUser(data.receiver);
     if (user) {
       io.to(user.socketId).emit('receiveMessage', data);
+    }
+  });
+
+  socket.on('markAsRead', (data) => {
+    const user = getUser(data.sender);
+    if (user) {
+      io.to(user.socketId).emit('receiveAsReadStatus', data);
     }
   });
 

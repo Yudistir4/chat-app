@@ -1,6 +1,6 @@
 import { ConversationDocument } from '@/database/models/conversation';
 import useConversation from '@/store/conversation';
-import { Avatar, Flex, Text } from '@chakra-ui/react';
+import { Avatar, Box, Flex, Text } from '@chakra-ui/react';
 import * as React from 'react';
 
 interface IConversationItemProps {
@@ -31,10 +31,26 @@ const ConversationItem: React.FunctionComponent<IConversationItemProps> = ({
       _hover={{ bg: 'whiteAlpha.200' }}
     >
       <Avatar src={conversation.participants[0].image} />
-      <Flex direction="column" width="80%">
+      <Flex
+        direction="column"
+        width="70%"
+        // flexGrow="1"
+      >
         <Text isTruncated>{conversation.participants[0].username}</Text>
         <Text isTruncated>{conversation.lastMessage.content}</Text>
       </Flex>
+      {conversation.unReadMessages > 0 && (
+        <Flex
+          alignItems="center"
+          justifyContent="center"
+          borderRadius={100}
+          w={7}
+          h={7}
+          bg="blue.500"
+        >
+          <Text>{conversation.unReadMessages}</Text>
+        </Flex>
+      )}
     </Flex>
   );
 };

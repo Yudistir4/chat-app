@@ -1,18 +1,21 @@
 import { api } from '@/config';
 import { MessageDocument } from '@/database/models/message';
 import useConversation from '@/store/conversation';
-import { Avatar, Box, Center, Flex, Input, Text } from '@chakra-ui/react';
+import { Center, Flex, Text } from '@chakra-ui/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
-import { Ref, RefObject, useEffect, useRef, useState } from 'react';
+import { Ref, RefObject, useEffect, useRef } from 'react';
 import Message from './Message';
 
-import { v4 as uuidv4 } from 'uuid';
-import { formatDate } from '@/utils';
-import Header from './Header';
+import { formatDate, getConversationUser } from '@/utils';
 import { Socket } from 'socket.io-client';
-import { ClientToServerEvents, Data, ServerToClientEvents } from '../index';
+import {
+  ClientToServerEvents,
+  Data,
+  ServerToClientEvents,
+} from '../../../typing';
+import Header from './Header';
 import InputMessage from './InputMessage';
 
 interface IConversationProps {
@@ -34,20 +37,21 @@ const Conversation: React.FunctionComponent<IConversationProps> = ({
   const currentConversation = useConversation(
     (state) => state.currentConversation
   );
-  const currentConversationUser = currentConversation?.participants.filter(
-    (participant) => participant._id !== session?.user.id
-  )[0];
-
-  const [arrivalMessage, setArrivalMessage] = useState<Data | null>(null);
+  const currentConversationUser = getConversationUser(
+    currentConversation,
+    session
+  );
 
   const queryClient = useQueryClient();
   const conversationRef = useRef<HTMLDivElement>();
   // Add new message
 
   // Query Message
-  const { data: dataMessage } = useQuery({
+  const { data: dataMessage, refetch } = useQuery({
     queryKey: ['message', currentConversation?._id],
     enabled: !!currentConversation,
+    refetchOnWindowFocus: false,
+
     queryFn: () =>
       axios.get<{ data: MessageDocument[] }>(
         api.messages + '?conversation=' + currentConversation?._id
@@ -72,28 +76,169 @@ const Conversation: React.FunctionComponent<IConversationProps> = ({
     },
   });
 
+  // Update all isRead Message
+  const { mutate: updateIsReadMessage } = useMutation({
+    mutationFn: (data: { sender: string; conversation: string }) =>
+      axios.put(`${api.messages}`, data),
+  });
+
+  // useEffect(() => {
+  //   socket.current?.on('receiveMessage', (message) => {
+  //     console.log({ message });
+
+  //     setArrivalMessage(message);
+  //   });
+
+  //   socket.current?.on('receiveAsReadStatus', (data) => {
+  //     console.log({ data });
+  //     setMarkAsRead(true);
+  //   });
+  // }, [socket]);
   useEffect(() => {
-    socket.current?.on('receiveMessage', (message) => {
+    console.log('---effect---');
+    const mySocket = socket.current;
+    function onReceiveMessage(message: Data) {
       console.log({ message });
+      // if (
+      //   currentConversation &&
+      //   currentConversation._id === message.conversation &&
+      //   queryClient.getQueryData(['message', currentConversation._id])
+      // ) {
+      //   queryClient.setQueryData(
+      //     ['message', currentConversation._id],
+      //     (old: any) => ({ data: { data: [...old.data.data, message] } })
+      //   );
 
-      setArrivalMessage(message);
-    });
-  }, [socket]);
+      //   //  update message to isRead = true
+      //   // if (currentConversation.unReadMessages !== 0) {
+      //   updateIsReadMessage({
+      //     sender: message.sender,
+      //     conversation: message.conversation,
+      //   });
+      //   // }
 
-  useEffect(() => {
-    if (
-      arrivalMessage &&
-      currentConversation &&
-      currentConversation._id === arrivalMessage.conversation &&
-      queryClient.getQueryData(['message', currentConversation._id])
-    ) {
-      queryClient.setQueryData(
-        ['message', currentConversation._id],
-        (old: any) => ({ data: { data: [...old.data.data, arrivalMessage] } })
-      );
-      setArrivalMessage(null);
+      //   // TODO: send isRead=true with socket io
+      //   mySocket?.emit('markAsRead', {
+      //     sender: message.sender,
+      //     conversation: message.conversation,
+      //   });
+      // }
+      if (queryClient.getQueryData(['message', message.conversation])) {
+        queryClient.setQueryData(
+          ['message', message.conversation],
+          (old: any) => ({ data: { data: [...old.data.data, message] } })
+        );
+
+        if (
+          currentConversation &&
+          currentConversation._id === message.conversation
+        ) {
+          updateIsReadMessage({
+            sender: message.sender,
+            conversation: message.conversation,
+          });
+          // }
+
+          // TODO: send isRead=true with socket io
+          mySocket?.emit('markAsRead', {
+            sender: message.sender,
+            conversation: message.conversation,
+          });
+        }
+      }
     }
-  }, [arrivalMessage, queryClient, currentConversation]);
+
+    function onReceiveAsReadStatus(data: {
+      conversation: string;
+      sender: string;
+    }) {
+      console.log('Mark as read---1');
+      if (
+        currentConversation &&
+        queryClient.getQueryData(['message', currentConversation._id])
+      ) {
+        console.log('Mark as read---2');
+        queryClient.setQueryData(
+          ['message', currentConversation._id],
+          (old: any) => ({
+            data: {
+              data: old.data.data.map((message: MessageDocument) => ({
+                ...message,
+                isRead: true,
+              })),
+            },
+          })
+        );
+      }
+    }
+    mySocket?.on('receiveMessage', onReceiveMessage);
+    mySocket?.on('receiveAsReadStatus', onReceiveAsReadStatus);
+
+    return () => {
+      mySocket?.off('receiveMessage', onReceiveMessage);
+      mySocket?.off('receiveAsReadStatus', onReceiveAsReadStatus);
+    };
+  }, [socket, currentConversation, queryClient, updateIsReadMessage]);
+
+  // useEffect(() => {
+  //   if (
+  //     markAsRead &&
+  //     currentConversation &&
+  //     queryClient.getQueryData(['message', currentConversation._id])
+  //   ) {
+  //     console.log('Mark as read');
+  //     queryClient.setQueryData(
+  //       ['message', currentConversation._id],
+  //       (old: any) => ({
+  //         data: {
+  //           data: old.data.data.map((message: MessageDocument) => ({
+  //             ...message,
+  //             isRead: true,
+  //           })),
+  //         },
+  //       })
+  //     );
+  //     setMarkAsRead(false);
+  //   }
+  // }, [markAsRead, currentConversation, queryClient]);
+
+  // useEffect(() => {
+  //   if (
+  //     socket.current &&
+  //     arrivalMessage &&
+  //     currentConversation &&
+  //     currentConversation._id === arrivalMessage.conversation &&
+  //     queryClient.getQueryData(['message', currentConversation._id])
+  //   ) {
+  //     queryClient.setQueryData(
+  //       ['message', currentConversation._id],
+  //       (old: any) => ({ data: { data: [...old.data.data, arrivalMessage] } })
+  //     );
+  //     console.log({ arrivalMessage });
+
+  //     //  update message to isRead = true
+  //     // if (currentConversation.unReadMessages !== 0) {
+  //     updateIsReadMessage({
+  //       sender: arrivalMessage.sender,
+  //       conversation: arrivalMessage.conversation,
+  //     });
+  //     // }
+
+  //     // TODO: send isRead=true with socket io
+  //     socket.current.emit('markAsRead', {
+  //       sender: arrivalMessage.sender,
+  //       conversation: arrivalMessage.conversation,
+  //     });
+
+  //     setArrivalMessage(null);
+  //   }
+  // }, [
+  //   arrivalMessage,
+  //   queryClient,
+  //   currentConversation,
+  //   updateIsReadMessage,
+  //   socket,
+  // ]);
 
   // Trigger scroll to bottom if message come in
   useEffect(() => {

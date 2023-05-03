@@ -21,8 +21,6 @@ export default async function handler(
   // console.log({ session });
   switch (req.method) {
     case 'GET':
-      console.table(req.query);
-
       let messages = await Message.find({
         conversation: req.query.conversation,
       }).sort({ createdAt: 1 });
@@ -40,6 +38,19 @@ export default async function handler(
         { new: true }
       );
       console.log({ result });
-      res.status(200).json({ data: message });
+      return res.status(200).json({ data: message });
+    case 'PUT':
+      const { sender, conversation } = req.body;
+      console.log('----------');
+      console.log(req.body);
+      const updateResult = await Message.updateMany(
+        { isRead: false, sender, conversation },
+        {
+          isRead: true,
+        },
+        { new: true }
+      );
+      console.log({ updateResult });
+      res.status(200).json({ data: updateResult });
   }
 }
