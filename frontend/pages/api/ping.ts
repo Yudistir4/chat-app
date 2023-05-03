@@ -14,6 +14,6 @@ export default async function handler(
   await connectToDatabase();
   switch (req.method) {
     case 'GET':
-      res.status(200).json({ data: 'Server Ok' });
+      res.status(200).json({ data: 'Server Ok ' });
   }
 }
