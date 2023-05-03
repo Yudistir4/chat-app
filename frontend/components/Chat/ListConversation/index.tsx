@@ -8,7 +8,11 @@ import axios from 'axios';
 import { signOut, useSession } from 'next-auth/react';
 import * as React from 'react';
 import { Socket } from 'socket.io-client';
-import { ClientToServerEvents, ServerToClientEvents } from '../../../typing';
+import {
+  ClientToServerEvents,
+  MessageData,
+  ServerToClientEvents,
+} from '../../../typing';
 import ConversationItem from './ConversationItem';
 import FindConversationModal from './FindConversationModal';
 
@@ -53,7 +57,7 @@ const ListConversation: React.FunctionComponent<IListConversationProps> = ({
   });
 
   React.useEffect(() => {
-    function onReceive(message: any) {
+    function onReceive(message: MessageData) {
       console.log({ messageBg: message });
       queryClient.setQueryData(['conversations'], (old: any) => {
         const conversationIndex: number = old.data.data.findIndex(
@@ -81,6 +85,24 @@ const ListConversation: React.FunctionComponent<IListConversationProps> = ({
     };
   }, [socket, currentConversation, queryClient, refetchConversations]);
 
+  const onClickConversationItem = (conversation: ConversationDocument) => {
+    if (!socket.current || conversation.unReadMessages === 0) return;
+    const sender = getConversationUser(conversation, session)?._id;
+    const conversationID: string = conversation._id;
+    updateIsReadMessage({ sender, conversation: conversationID });
+
+    // emit mark as read message
+    socket.current.emit('markAsRead', { sender, conversation: conversationID });
+
+    // update unReadMessage=0
+    queryClient.setQueryData(['conversations'], (old: any) => {
+      const conversationIndex: number = old.data.data.findIndex(
+        (conversation: any) => conversation._id === conversationID
+      );
+      old.data.data[conversationIndex].unReadMessages = 0;
+      return old;
+    });
+  };
   return (
     <Box
       width={{ base: '100%', md: '400px' }}
@@ -107,31 +129,7 @@ const ListConversation: React.FunctionComponent<IListConversationProps> = ({
             dataConversations.map((conversation) => (
               <div
                 key={conversation._id}
-                onClick={() => {
-                  if (!socket.current || conversation.unReadMessages === 0)
-                    return;
-                  const sender = getConversationUser(
-                    conversation,
-                    session
-                  )?._id;
-                  const conversationID: string = conversation._id;
-                  updateIsReadMessage({ sender, conversation: conversationID });
-
-                  // emit mark as read message
-                  socket.current.emit('markAsRead', {
-                    sender,
-                    conversation: conversationID,
-                  });
-
-                  // update entire unread count message queryClients
-                  queryClient.setQueryData(['conversations'], (old: any) => {
-                    const conversationIndex: number = old.data.data.findIndex(
-                      (conversation: any) => conversation._id === conversationID
-                    );
-                    old.data.data[conversationIndex].unReadMessages = 0;
-                    return old;
-                  });
-                }}
+                onClick={() => onClickConversationItem(conversation)}
               >
                 <ConversationItem
                   conversation={conversation}

@@ -2,7 +2,7 @@ export interface User {
   userId: string;
   socketId: string;
 }
-export interface Data {
+export interface MessageData {
   _id: string;
   content: string;
   conversation: string;
@@ -10,14 +10,19 @@ export interface Data {
   receiver: string;
   createdAt: Date;
 }
+
+export interface AsReadPayload {
+  conversation: string;
+  sender: string;
+}
 export interface ServerToClientEvents {
   getUsers: (users: User[]) => void;
-  receiveMessage: (data: Data) => void;
-  receiveAsReadStatus: (data: { conversation: string; sender: string }) => void;
+  receiveMessage: (message: MessageData) => void;
+  receiveAsReadStatus: (data: AsReadPayload) => void;
 }
 
 export interface ClientToServerEvents {
   addUser: (userId: string) => void;
-  sendMessage: (data: Data) => void;
-  markAsRead: (data: { conversation: string; sender: string }) => void;
+  sendMessage: (message: MessageData) => void;
+  markAsRead: (data: AsReadPayload) => void;
 }

@@ -1,5 +1,5 @@
 import { MessageDocument } from '@/database/models/message';
-import { Flex, Stack, Text } from '@chakra-ui/react';
+import { Flex, Text } from '@chakra-ui/react';
 import * as React from 'react';
 
 interface IMessageProps {

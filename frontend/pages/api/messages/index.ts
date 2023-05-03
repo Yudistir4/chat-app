@@ -2,7 +2,6 @@ import { connectToDatabase } from '@/database/connection';
 import Conversation from '@/database/models/conversation';
 import Message from '@/database/models/message';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from 'next-auth/react';
 
 interface Response {
   data?: any;

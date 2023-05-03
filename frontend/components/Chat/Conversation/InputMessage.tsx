@@ -9,7 +9,7 @@ import { RefObject, useState } from 'react';
 import { Socket } from 'socket.io-client';
 
 import { v4 as uuidv4 } from 'uuid';
-import { ClientToServerEvents, ServerToClientEvents } from '..';
+import { ClientToServerEvents, ServerToClientEvents } from '../../../typing';
 
 interface IInputMessageProps {
   session: Session | null;
@@ -26,6 +26,7 @@ const InputMessage: React.FunctionComponent<IInputMessageProps> = ({
   currentConversationUser,
   socket,
 }) => {
+  console.log('--input--');
   const [content, setContent] = useState('');
   const { mutate: addMessageMutate } = useMutation({
     mutationFn: (message: {
@@ -64,18 +65,22 @@ const InputMessage: React.FunctionComponent<IInputMessageProps> = ({
       (old: any) => ({ data: { data: [...old.data.data, message] } })
     );
 
-    // add conversation to conversation list
+    // add message to lastMessage conversation list
     queryClient.setQueryData(['conversations'], (old: any) => {
       const conversationIndex: number = old.data.data.findIndex(
         (conversation: any) => conversation._id === currentConversation._id
       );
 
-      if (conversationIndex >= 0) {
+      const updateLastMessage = (old: any, lastMessage: any): any => {
         let conversations = JSON.parse(JSON.stringify(old.data.data));
         const itemToMove = conversations[conversationIndex];
         conversations.splice(conversationIndex, 1);
-        conversations.unshift({ ...itemToMove, lastMessage: message });
-        return { data: { data: conversations } };
+        conversations.unshift({ ...itemToMove, lastMessage });
+        return conversations;
+      };
+
+      if (conversationIndex >= 0) {
+        return { data: { data: updateLastMessage(old, message) } };
       } else {
         return {
           data: {

@@ -11,8 +11,9 @@ import Message from './Message';
 import { formatDate, getConversationUser } from '@/utils';
 import { Socket } from 'socket.io-client';
 import {
+  AsReadPayload,
   ClientToServerEvents,
-  Data,
+  MessageData,
   ServerToClientEvents,
 } from '../../../typing';
 import Header from './Header';
@@ -31,7 +32,7 @@ interface Messages {
 const Conversation: React.FunctionComponent<IConversationProps> = ({
   socket,
 }) => {
-  console.log('relex');
+  console.log('conversation');
 
   const { data: session } = useSession();
   const currentConversation = useConversation(
@@ -44,10 +45,9 @@ const Conversation: React.FunctionComponent<IConversationProps> = ({
 
   const queryClient = useQueryClient();
   const conversationRef = useRef<HTMLDivElement>();
-  // Add new message
 
-  // Query Message
-  const { data: dataMessage, refetch } = useQuery({
+  // Query Messages
+  const { data: dataMessage } = useQuery({
     queryKey: ['message', currentConversation?._id],
     enabled: !!currentConversation,
     refetchOnWindowFocus: false,
@@ -82,93 +82,36 @@ const Conversation: React.FunctionComponent<IConversationProps> = ({
       axios.put(`${api.messages}`, data),
   });
 
-  // useEffect(() => {
-  //   socket.current?.on('receiveMessage', (message) => {
-  //     console.log({ message });
-
-  //     setArrivalMessage(message);
-  //   });
-
-  //   socket.current?.on('receiveAsReadStatus', (data) => {
-  //     console.log({ data });
-  //     setMarkAsRead(true);
-  //   });
-  // }, [socket]);
   useEffect(() => {
-    console.log('---effect---');
     const mySocket = socket.current;
-    function onReceiveMessage(message: Data) {
+    function onReceiveMessage(message: MessageData) {
       console.log({ message });
-      // if (
-      //   currentConversation &&
-      //   currentConversation._id === message.conversation &&
-      //   queryClient.getQueryData(['message', currentConversation._id])
-      // ) {
-      //   queryClient.setQueryData(
-      //     ['message', currentConversation._id],
-      //     (old: any) => ({ data: { data: [...old.data.data, message] } })
-      //   );
+      const { sender, conversation } = message;
 
-      //   //  update message to isRead = true
-      //   // if (currentConversation.unReadMessages !== 0) {
-      //   updateIsReadMessage({
-      //     sender: message.sender,
-      //     conversation: message.conversation,
-      //   });
-      //   // }
-
-      //   // TODO: send isRead=true with socket io
-      //   mySocket?.emit('markAsRead', {
-      //     sender: message.sender,
-      //     conversation: message.conversation,
-      //   });
-      // }
       if (queryClient.getQueryData(['message', message.conversation])) {
         queryClient.setQueryData(
           ['message', message.conversation],
           (old: any) => ({ data: { data: [...old.data.data, message] } })
         );
 
-        if (
-          currentConversation &&
-          currentConversation._id === message.conversation
-        ) {
-          updateIsReadMessage({
-            sender: message.sender,
-            conversation: message.conversation,
-          });
-          // }
-
-          // TODO: send isRead=true with socket io
-          mySocket?.emit('markAsRead', {
-            sender: message.sender,
-            conversation: message.conversation,
-          });
+        if (currentConversation?._id === message.conversation) {
+          updateIsReadMessage({ sender, conversation });
+          mySocket?.emit('markAsRead', { sender, conversation });
         }
       }
     }
 
-    function onReceiveAsReadStatus(data: {
-      conversation: string;
-      sender: string;
-    }) {
-      console.log('Mark as read---1');
-      if (
-        currentConversation &&
-        queryClient.getQueryData(['message', currentConversation._id])
-      ) {
+    function onReceiveAsReadStatus({ conversation }: AsReadPayload) {
+      if (queryClient.getQueryData(['message', conversation])) {
         console.log('Mark as read---2');
-        queryClient.setQueryData(
-          ['message', currentConversation._id],
-          (old: any) => ({
-            data: {
-              data: old.data.data.map((message: MessageDocument) => ({
-                ...message,
-                isRead: true,
-              })),
-            },
-          })
-        );
+        queryClient.setQueryData(['message', conversation], (old: any) => ({
+          data: {
+            data: old.data.data.map((message: MessageDocument) => ({
+              ...message,
+              isRead: true,
+            })),
+          },
+        }));
       }
     }
     mySocket?.on('receiveMessage', onReceiveMessage);
@@ -179,66 +122,6 @@ const Conversation: React.FunctionComponent<IConversationProps> = ({
       mySocket?.off('receiveAsReadStatus', onReceiveAsReadStatus);
     };
   }, [socket, currentConversation, queryClient, updateIsReadMessage]);
-
-  // useEffect(() => {
-  //   if (
-  //     markAsRead &&
-  //     currentConversation &&
-  //     queryClient.getQueryData(['message', currentConversation._id])
-  //   ) {
-  //     console.log('Mark as read');
-  //     queryClient.setQueryData(
-  //       ['message', currentConversation._id],
-  //       (old: any) => ({
-  //         data: {
-  //           data: old.data.data.map((message: MessageDocument) => ({
-  //             ...message,
-  //             isRead: true,
-  //           })),
-  //         },
-  //       })
-  //     );
-  //     setMarkAsRead(false);
-  //   }
-  // }, [markAsRead, currentConversation, queryClient]);
-
-  // useEffect(() => {
-  //   if (
-  //     socket.current &&
-  //     arrivalMessage &&
-  //     currentConversation &&
-  //     currentConversation._id === arrivalMessage.conversation &&
-  //     queryClient.getQueryData(['message', currentConversation._id])
-  //   ) {
-  //     queryClient.setQueryData(
-  //       ['message', currentConversation._id],
-  //       (old: any) => ({ data: { data: [...old.data.data, arrivalMessage] } })
-  //     );
-  //     console.log({ arrivalMessage });
-
-  //     //  update message to isRead = true
-  //     // if (currentConversation.unReadMessages !== 0) {
-  //     updateIsReadMessage({
-  //       sender: arrivalMessage.sender,
-  //       conversation: arrivalMessage.conversation,
-  //     });
-  //     // }
-
-  //     // TODO: send isRead=true with socket io
-  //     socket.current.emit('markAsRead', {
-  //       sender: arrivalMessage.sender,
-  //       conversation: arrivalMessage.conversation,
-  //     });
-
-  //     setArrivalMessage(null);
-  //   }
-  // }, [
-  //   arrivalMessage,
-  //   queryClient,
-  //   currentConversation,
-  //   updateIsReadMessage,
-  //   socket,
-  // ]);
 
   // Trigger scroll to bottom if message come in
   useEffect(() => {

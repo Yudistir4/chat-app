@@ -1,13 +1,9 @@
 import { connectToDatabase } from '@/database/connection';
-import Conversation, {
-  ConversationDocument,
-} from '@/database/models/conversation';
+import Conversation from '@/database/models/conversation';
 import Message, { MessageDocument } from '@/database/models/message';
 import { UserDocument } from '@/database/models/user';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth';
-import { getToken } from 'next-auth/jwt';
-import { getCsrfToken, getSession } from 'next-auth/react';
+import { getSession } from 'next-auth/react';
 
 interface Response {
   data?: any;
@@ -74,9 +70,7 @@ export default async function handler(
         return res
           .status(200)
           .json({ data: conversation, message: 'already created' });
-      conversation = new Conversation({
-        participants: req.body.participants,
-      });
+      conversation = new Conversation({ participants: req.body.participants });
       conversation = await conversation.save();
 
       conversation = await Conversation.findById(conversation._id).populate(
