@@ -22,7 +22,7 @@ interface ClientToServerEvents {
   sendMessage: (data: Data) => void;
   markAsRead: (data: { conversation: string; sender: string }) => void;
   // joinRoom: (roomId: string) => void;
-  // leaveRoom: (roomId: string) => void;
+  // leaveRoom: (roomId: string) =>  void;
 }
 
 interface InterServerEvents {
