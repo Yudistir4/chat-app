@@ -2,6 +2,7 @@ import { api } from '@/config';
 import {
   Button,
   Center,
+  Flex,
   FormControl,
   FormErrorMessage,
   Image,
@@ -17,6 +18,7 @@ import { FormEvent, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { BsMessenger } from 'react-icons/bs';
 interface IAuthProps {
   session: Session | null;
   reloadSession?: () => void;
@@ -58,7 +60,7 @@ const Auth: React.FunctionComponent<IAuthProps> = ({ session }) => {
 
   return (
     <Center height="100vh">
-      <Stack spacing={8} align={'center'}>
+      <Flex direction="column" gap={4} align={'center'}>
         {session ? (
           <>
             <Text fontSize="3xl">Enter Username</Text>
@@ -80,7 +82,7 @@ const Auth: React.FunctionComponent<IAuthProps> = ({ session }) => {
           </>
         ) : (
           <>
-            <Image height={100} src="/images/googlelogo.png" alt="logo" />
+            <BsMessenger fontSize={80} />
             <Text fontSize={'4xl'}>Messenger</Text>
             <Text width="70%" align="center">
               Sign in with Google to send unlimited free messages to your
@@ -96,7 +98,7 @@ const Auth: React.FunctionComponent<IAuthProps> = ({ session }) => {
             </Button>
           </>
         )}
-      </Stack>
+      </Flex>
     </Center>
   );
 };
