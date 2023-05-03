@@ -8,6 +8,13 @@ const config: ThemeConfig = {
 export const theme = extendTheme(
   { config },
   {
+    breakpoints: {
+      sm: '0px',
+      md: '600px',
+      lg: '800px',
+      xl: '80em',
+      '2xl': '96em',
+    },
     colors: {
       brand: {
         100: '#3D84F7',

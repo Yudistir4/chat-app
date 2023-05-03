@@ -63,7 +63,7 @@ const FindConversationModal: React.FunctionComponent<
     <>
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent bg="#2d2d2d">
+        <ModalContent bg="#2d2d2d" mx={4}>
           <ModalHeader>Find or start conversation</ModalHeader>
           <ModalCloseButton />
           <ModalBody>

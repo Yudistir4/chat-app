@@ -134,8 +134,13 @@ const Conversation: React.FunctionComponent<IConversationProps> = ({
     <>
       {currentConversation ? (
         <Flex
+          display={{ sm: currentConversation ? 'flex' : 'none', md: 'flex' }}
           direction="column"
-          width={{ base: '0', md: 'calc(100% - 400px)' }}
+          width={{
+            sm: currentConversation ? '100%' : '0',
+            md: '50%',
+            lg: 'calc(100% - 400px)',
+          }}
         >
           {/* Header */}
           <Header currentConversationUser={currentConversationUser} />
@@ -179,7 +184,14 @@ const Conversation: React.FunctionComponent<IConversationProps> = ({
           />
         </Flex>
       ) : (
-        <Center width={{ base: '0', md: 'calc(100% - 400px)' }}>
+        <Center
+          display={{ sm: currentConversation ? 'flex' : 'none', md: 'flex' }}
+          width={{
+            sm: currentConversation ? '100%' : '0',
+            md: '50%',
+            lg: 'calc(100% - 400px)',
+          }}
+        >
           <Text fontSize="3xl">Lets Start Conversation </Text>
         </Center>
       )}

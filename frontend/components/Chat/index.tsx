@@ -45,7 +45,7 @@ const Chat: React.FunctionComponent<IChatProps> = ({ session }) => {
   }, [session, currentConversationUser, setIsCurrentConversationUserOnline]);
 
   return (
-    <Flex height="100vh">
+    <Flex height="100vh" overflowX="hidden">
       <ListConversation socket={socket} />
       <Conversation socket={socket} />
     </Flex>

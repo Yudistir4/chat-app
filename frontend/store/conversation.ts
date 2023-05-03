@@ -4,7 +4,7 @@ import { create } from 'zustand';
 
 interface ConversationState {
   currentConversation: ConversationDocument | null;
-  setCurrentConversation: (user: ConversationDocument) => void;
+  setCurrentConversation: (user: ConversationDocument | null) => void;
   isCurrentConversationUserOnline: boolean;
   setIsCurrentConversationUserOnline: (status: boolean) => void;
 }
@@ -14,7 +14,7 @@ const useConversation = create<ConversationState>((set) => ({
   setIsCurrentConversationUserOnline: (status: boolean) =>
     set({ isCurrentConversationUserOnline: status }),
   currentConversation: null,
-  setCurrentConversation: (user: ConversationDocument) =>
+  setCurrentConversation: (user: ConversationDocument | null) =>
     set({ currentConversation: user }),
 }));
 

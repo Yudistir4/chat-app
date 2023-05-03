@@ -105,7 +105,8 @@ const ListConversation: React.FunctionComponent<IListConversationProps> = ({
   };
   return (
     <Box
-      width={{ base: '100%', md: '400px' }}
+      display={{ sm: currentConversation ? 'none' : 'block', md: 'block' }}
+      width={{ sm: currentConversation ? '0' : '100%', md: '50%', lg: '400px' }}
       py={2}
       px={4}
       bg="whiteAlpha.50"
