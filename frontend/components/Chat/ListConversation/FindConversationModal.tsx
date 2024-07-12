@@ -2,6 +2,7 @@ import { api } from '@/config';
 import { UserDocument } from '@/database/models/user';
 import useConversation from '@/store/conversation';
 import {
+  Flex,
   Input,
   Modal,
   ModalBody,
@@ -11,6 +12,7 @@ import {
   ModalHeader,
   ModalOverlay,
   Stack,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
@@ -26,6 +28,8 @@ interface IFindConversationModalProps {
 const FindConversationModal: React.FunctionComponent<
   IFindConversationModalProps
 > = ({ isOpen, onClose }) => {
+  const bg = useColorModeValue('white', '#2d2d2d');
+
   const { data: session } = useSession();
   const [username, setUsername] = useState('');
 
@@ -59,15 +63,16 @@ const FindConversationModal: React.FunctionComponent<
     mutateCreateConversation([session.user.id, user._id]);
     onClose();
   };
+
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent bg="#2d2d2d" mx={4}>
+        <ModalContent bg={bg} mx={4}>
           <ModalHeader>Find or start conversation</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Stack gap={2}>
+            <Flex flexDirection="column" gap={1} mt={1}>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -88,7 +93,7 @@ const FindConversationModal: React.FunctionComponent<
                   onClick={() => onClickUserItem(user)}
                 />
               ))}
-            </Stack>
+            </Flex>
           </ModalBody>
 
           <ModalFooter></ModalFooter>

@@ -1,6 +1,6 @@
 import { ConversationDocument } from '@/database/models/conversation';
 import useConversation from '@/store/conversation';
-import { Avatar, Box, Flex, Text } from '@chakra-ui/react';
+import { Avatar, Box, Flex, Text, useColorModeValue } from '@chakra-ui/react';
 import * as React from 'react';
 
 interface IConversationItemProps {
@@ -15,6 +15,7 @@ const ConversationItem: React.FunctionComponent<IConversationItemProps> = ({
   const setCurrentConversation = useConversation(
     (state) => state.setCurrentConversation
   );
+  const bg = useColorModeValue('blackAlpha.200', 'whiteAlpha.300');
 
   return (
     <Flex
@@ -27,8 +28,8 @@ const ConversationItem: React.FunctionComponent<IConversationItemProps> = ({
       transitionDuration="0.1s"
       cursor="pointer"
       width="full"
-      bg={isOnConversation ? 'whiteAlpha.200' : ''}
-      _hover={{ bg: 'whiteAlpha.200' }}
+      bg={isOnConversation ? bg : ''}
+      _hover={{ bg }}
     >
       <Avatar src={conversation.participants[0].image} />
       <Flex
@@ -48,7 +49,7 @@ const ConversationItem: React.FunctionComponent<IConversationItemProps> = ({
           h={7}
           bg="blue.500"
         >
-          <Text>{conversation.unReadMessages}</Text>
+          <Text color={'white'}>{conversation.unReadMessages}</Text>
         </Flex>
       )}
     </Flex>

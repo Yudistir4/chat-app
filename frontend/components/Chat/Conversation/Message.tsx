@@ -1,5 +1,5 @@
 import { MessageDocument } from '@/database/models/message';
-import { Flex, Text } from '@chakra-ui/react';
+import { Flex, Text, useColorModeValue } from '@chakra-ui/react';
 import * as React from 'react';
 
 interface IMessageProps {
@@ -11,6 +11,9 @@ const Message: React.FunctionComponent<IMessageProps> = ({
   isOwn,
   message,
 }) => {
+  const colorIsRead = useColorModeValue('blackAlpha.700', 'whiteAlpha.700');
+  const bgNotOwn = useColorModeValue('blackAlpha.700', 'whiteAlpha.300');
+
   const date = new Date(message.createdAt);
   let hour = date.getHours();
   if (hour === 24) {
@@ -38,17 +41,18 @@ const Message: React.FunctionComponent<IMessageProps> = ({
         px={4}
         py={2}
         borderRadius={`25px 25px ${isOwn ? '0 25px' : '25px 0'}`}
-        bg={isOwn ? 'blue.500' : 'whiteAlpha.300'}
+        bg={isOwn ? 'blue.500' : bgNotOwn}
+        textColor={'white'}
       >
         {message.content}
       </Text>
       <Flex direction="column">
         {isOwn && message.isRead && (
-          <Text fontSize="xs" color="whiteAlpha.700">
+          <Text fontSize="xs" color={colorIsRead}>
             Read
           </Text>
         )}
-        <Text fontSize="xs" color="whiteAlpha.700">
+        <Text fontSize="xs" color={colorIsRead}>
           {time}
         </Text>
       </Flex>

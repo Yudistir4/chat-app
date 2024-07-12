@@ -2,7 +2,14 @@ import { api } from '@/config';
 import { ConversationDocument } from '@/database/models/conversation';
 import useConversation from '@/store/conversation';
 import { getConversationUser } from '@/utils';
-import { Box, Button, Stack, Text, useDisclosure } from '@chakra-ui/react';
+import {
+  Box,
+  Button,
+  Stack,
+  Text,
+  useColorModeValue,
+  useDisclosure,
+} from '@chakra-ui/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { signOut, useSession } from 'next-auth/react';
@@ -31,6 +38,7 @@ const ListConversation: React.FunctionComponent<IListConversationProps> = ({
   const currentConversation = useConversation(
     (state) => state.currentConversation
   );
+  const bg = useColorModeValue('blackAlpha.900', 'blackAlpha.300');
 
   // Get Conversation list
   const { data: dataConversations, refetch: refetchConversations } = useQuery({
@@ -111,11 +119,12 @@ const ListConversation: React.FunctionComponent<IListConversationProps> = ({
       px={4}
       bg="whiteAlpha.50"
       position="relative"
+      maxH={'98vh'}
     >
       <Stack height="full">
         <Box
           onClick={onOpen}
-          bg="blackAlpha.300"
+          bg={bg}
           cursor="pointer"
           p={2}
           borderRadius={4}

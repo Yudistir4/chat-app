@@ -96,7 +96,7 @@ const InputMessage: React.FunctionComponent<IInputMessageProps> = ({
     setContent('');
   };
   return (
-    <Box p={3}>
+    <Box p={3} position={'absolute'} width="100%" bottom="0">
       <form onSubmit={onSubmit}>
         <Input
           value={content}
